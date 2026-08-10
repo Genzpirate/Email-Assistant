@@ -2,18 +2,80 @@ package com.email.emailwritersb.Service;
 
 
 import com.email.emailwritersb.DTO.EmailRequest;
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class EmailGeneratorService {
+
+    private final WebClient webClient;
+    @Value("${gemini.api.url}")
+    private String geminiApiUrl;
+    @Value("${gemini.api.key}")
+    private String geminiApiKey;
+
+    public EmailGeneratorService(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder.build();
+    }
+
+
     public String generateEmailReply(EmailRequest emailRequest) {
         //Build the prompt
 
         String prompt = buildPropmt(emailRequest);
         //Craft a request
+        Map<String,Object> requestBody = Map.of("contents",new Object[]{
+                Map.of("parts",new Object[]{
+                        Map.of("text",prompt)
+                })
+                }
+        );
         //Request and get response
-        //return response
 
+
+        String response = webClient.post()
+                .uri(geminiApiUrl + geminiApiKey)
+                .header("Content-Type","application/json")
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
+
+
+        //Extract response and return it
+        return extractResponseContent(response);
+
+
+
+    }
+
+    private String extractResponseContent(String response) {
+        try{
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode rootNode = mapper.readTree(response);
+            return rootNode.path("candidates")
+                    .get(0)
+                    .path("content")
+                    .path("parts")
+                    .get(0)
+                    .path("text")
+                    .asText();
+
+
+        }
+        catch(Exception e){
+            return "Error extracting response content: " + e.getMessage();
+           // e.printStackTrace();
+        }
     }
 
     private String buildPropmt(EmailRequest emailRequest) {
