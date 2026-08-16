@@ -51,6 +51,36 @@ function createAIButton(){
 
 }
 
+
+function createToneDropdown() {
+    const select = document.createElement('select');
+
+    select.className = 'ai-tone-select';
+    select.style.marginRight = '8px';
+    select.style.height = '30px';
+    select.style.borderRadius = '4px';
+    select.style.border = '1px solid #ccc';
+    select.style.padding = '2px 6px';
+    select.style.cursor = 'pointer';
+
+    const tones = [
+        { value: 'professional', label: 'Professional' },
+        { value: 'casual', label: 'Casual' },
+        { value: 'friendly', label: 'Friendly' },
+        { value: 'formal', label: 'Formal' },
+        { value: 'concise', label: 'Concise' }
+    ];
+
+    tones.forEach(tone => {
+        const option = document.createElement('option');
+        option.value = tone.value;
+        option.textContent = tone.label;
+        select.appendChild(option);
+    });
+
+    return select;
+}
+
 function injectButton(){
     const existingButton = document.querySelector('.ai-reply-button');
     if(existingButton) existingButton.remove();
@@ -63,6 +93,9 @@ function injectButton(){
     }
     console.log("Toolbar found, creating AI button");
     const button = createAIButton();
+
+    const toneDropdown = createToneDropdown();
+
     button.classList.add('.ai-reply-button');
 
     button.addEventListener('click',async () => {
@@ -79,7 +112,7 @@ function injectButton(){
                 body: JSON.stringify({
                     
                         emailContent: emailContent,
-                        tone: "professional"
+                        tone: toneDropdown.value
                     
                 })
             });
@@ -109,7 +142,8 @@ function injectButton(){
 
     });
 
-    toolbar.insertBefore(button,toolbar.firstChild);
+    toolbar.insertBefore(toneDropdown, toolbar.firstChild);
+    toolbar.insertBefore(button, toneDropdown.nextSibling);
 
 
 }
